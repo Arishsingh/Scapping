@@ -1,0 +1,483 @@
+{
+  "name": "Google Maps Lead Generator (Apify)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Google Maps Lead Generator",
+        "formDescription": "Generate business leads from Google Maps via the Apify Google Places scraper.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "category",
+              "placeholder": "e.g. clothing, restaurants",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "location",
+              "placeholder": "e.g. Punjab, India  or  Texas, USA",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "max_results",
+              "fieldType": "number",
+              "placeholder": "100",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a1c101-0001-4001-8001-000000000001",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -260,
+        320
+      ],
+      "webhookId": "b1a1c101-0001-4001-8001-webhook00001",
+      "notes": "ENTRY POINT. Collects: category, location, max_results (defaults to 100 if left blank). Swap for a Manual Trigger while testing if you prefer."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asg-cat",
+              "name": "category",
+              "value": "={{ $json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-loc",
+              "name": "location",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-max",
+              "name": "max_results",
+              "value": "={{ Number($json.max_results) > 0 ? Number($json.max_results) : 100 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a1c101-0002-4001-8001-000000000002",
+      "name": "Normalize Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -40,
+        320
+      ],
+      "notes": "Cleans the form input. Applies the default of 100 when max_results is blank or invalid, and carries category/location forward for the search string."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  searchStringsArray: [ `${$json.category} in ${$json.location}` ],\n  maxCrawledPlacesPerSearch: $json.max_results,\n  language: 'en',\n  scrapeContacts: true\n}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "id": "b1a1c101-0003-4001-8001-000000000003",
+      "name": "Apify - Google Places Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        320
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Apify API (Header Auth)"
+        }
+      },
+      "notes": "Runs the Apify actor compass/crawler-google-places SYNCHRONOUSLY and returns the dataset items directly (one item per business). Auth token comes from the 'Apify API (Header Auth)' credential (Authorization: Bearer <token>) — never hardcoded. scrapeContacts:true asks the actor to try to find emails. 'Never Error' + Continue On Error means a failed run won't break the whole workflow."
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "id": "b1a1c101-0004-4001-8001-000000000004",
+      "name": "Split Out (safety)",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        400,
+        540
+      ],
+      "disabled": true,
+      "notes": "OPTIONAL / DISABLED. The run-sync-get-dataset-items endpoint already returns one item per business, so this is usually not needed. Enable it ONLY if your n8n version wraps the array under a 'data' field."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m-name",
+              "name": "name",
+              "value": "={{ $json.title || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-category",
+              "name": "category",
+              "value": "={{ $json.categoryName || ($json.categories ? $json.categories.join(', ') : '') }}",
+              "type": "string"
+            },
+            {
+              "id": "m-address",
+              "name": "full_address",
+              "value": "={{ $json.address || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-city",
+              "name": "city",
+              "value": "={{ $json.city || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-state",
+              "name": "state",
+              "value": "={{ $json.state || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-postal",
+              "name": "postal_code",
+              "value": "={{ $json.postalCode || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-phone",
+              "name": "phone",
+              "value": "={{ $json.phone || $json.phoneUnformatted || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-website",
+              "name": "website",
+              "value": "={{ $json.website || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-email",
+              "name": "email",
+              "value": "={{ ($json.emails && $json.emails.length ? $json.emails[0] : '') }}",
+              "type": "string"
+            },
+            {
+              "id": "m-rating",
+              "name": "rating",
+              "value": "={{ $json.totalScore != null ? $json.totalScore : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-reviews",
+              "name": "reviews_count",
+              "value": "={{ $json.reviewsCount != null ? $json.reviewsCount : 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "m-hours",
+              "name": "opening_hours",
+              "value": "={{ Array.isArray($json.openingHours) ? $json.openingHours.map(h => `${h.day}: ${h.hours}`).join(' | ') : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-lat",
+              "name": "latitude",
+              "value": "={{ $json.location ? $json.location.lat : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-lng",
+              "name": "longitude",
+              "value": "={{ $json.location ? $json.location.lng : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "m-url",
+              "name": "google_maps_url",
+              "value": "={{ $json.url || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "b1a1c101-0005-4001-8001-000000000005",
+      "name": "Map Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        620,
+        320
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Maps the raw Apify response to clean, flat columns. Every field is guarded with '|| default' so one record missing (e.g.) a phone or email does not error the row. Continue On Error is on as a second safety net."
+    },
+    {
+      "parameters": {
+        "operation": "removeDuplicates",
+        "compare": "selectedFields",
+        "fieldsToCompare": "name, full_address",
+        "options": {}
+      },
+      "id": "b1a1c101-0006-4001-8001-000000000006",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        840,
+        320
+      ],
+      "notes": "De-duplicates leads by name + full_address so the same shop listed twice is collapsed to one row."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "b1a1c101-0007-4001-8001-000000000007",
+      "name": "Append to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1060,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Appends each clean lead row to the 'Leads' tab. Auto-maps columns by header name, so add a header row matching the field names (name, category, full_address, city, ...). Continue On Error keeps the run alive if one write hiccups."
+    },
+    {
+      "parameters": {
+        "operation": "toFile",
+        "fileFormat": "csv",
+        "options": {
+          "fileName": "google-maps-leads.csv"
+        }
+      },
+      "id": "b1a1c101-0008-4001-8001-000000000008",
+      "name": "CSV (alternative to Sheets)",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        420
+      ],
+      "disabled": true,
+      "notes": "ALTERNATIVE OUTPUT (disabled). Enable this instead of the Google Sheet if you just want a downloadable CSV. Wire the download to an email/Slack node if you want it delivered."
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "b1a1c101-0009-4001-8001-000000000009",
+      "name": "Aggregate All Leads",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        320
+      ],
+      "notes": "Rolls every lead item back into a single item so we can count the total for the summary."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s-total",
+              "name": "total_found",
+              "value": "={{ $json.data ? $json.data.length : 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "s-msg",
+              "name": "summary",
+              "value": "={{ 'Lead generation complete. Total leads found: ' + ($json.data ? $json.data.length : 0) + ' for \"' + $('Normalize Inputs').first().json.category + ' in ' + $('Normalize Inputs').first().json.location + '\".' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a1c101-0010-4001-8001-000000000010",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1500,
+        320
+      ],
+      "notes": "Produces the final summary: total_found + a human-readable message. Connect a Gmail / Send Email / Slack node here to actually deliver it to you."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "={{ $credentials }}"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.displayName,places.formattedAddress,places.primaryType,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.location,places.googleMapsUri,places.regularOpeningHours"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ textQuery: `${$json.category} in ${$json.location}`, pageSize: Math.min($json.max_results, 20) }) }}",
+        "options": {}
+      },
+      "id": "b1a1c101-0011-4001-8001-000000000011",
+      "name": "ALT: Google Places API (searchText)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        620
+      ],
+      "disabled": true,
+      "notes": "ALTERNATIVE SOURCE (disabled). Uses Google's official new Places API instead of Apify. Cleaner/first-party data BUT: no emails, max 20 results per page (needs pagination via nextPageToken for more), and it's billed per request by Google. Put your Google Maps Platform API key in the X-Goog-Api-Key header (use an n8n credential/header auth rather than inline). Response is under 'places[]' — you'd add a Split Out on 'places' then a Map Fields node using displayName.text, formattedAddress, location.latitude/longitude, googleMapsUri, etc."
+    }
+  ],
+  "connections": {
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Inputs": {
+      "main": [
+        [
+          {
+            "node": "Apify - Google Places Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify - Google Places Scraper": {
+      "main": [
+        [
+          {
+            "node": "Map Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out (safety)": {
+      "main": [
+        [
+          {
+            "node": "Map Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Fields": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CSV (alternative to Sheets)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate All Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Leads": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
