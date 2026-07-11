@@ -60,8 +60,10 @@ npm start
 
 - **Location** (required). **Category** is optional — leave it blank to list
   **all brands** in the area (`businesses in {location}`).
-- **Max results** — 1–1000 (hard-capped). Note the browser source opens one page
-  per place (~2s each), so large numbers take minutes.
+- **Max results** — 1–100,000 (hard-capped). Note the browser source opens one
+  page per place (~2s each), so large numbers take a long time — and Google's feed
+  only yields ~120 per search anyway (see Notes). High values mostly matter for
+  Apify, where they also drive up usage/cost.
 - **Source**:
   - **Auto** — try Apify first (if a token is set), fall back to the browser.
   - **Apify only** — first-party actor data; fast and rich, but tends to return
@@ -96,7 +98,7 @@ python scraper/scraper.py --location "Punjab, India" --json     # NDJSON (what E
 ```
 
 Flags: `--location` (required), `--category`, `--max-results` (default 100, cap
-1000), `--source auto|apify|browser`, `--only-no-website`, `--only-with-email`,
+100000), `--source auto|apify|browser`, `--only-no-website`, `--only-with-email`,
 `--output-dir`, `--json`.
 
 ### Apify token

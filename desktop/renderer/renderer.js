@@ -20,7 +20,7 @@ const $ = (id) => document.getElementById(id);
 
 // Apify plan caps runs; keep result requests bounded to protect usage/cost.
 // Blank/non-numeric falls back to the default; 0/negative clamps up to the min.
-const MAX_RESULTS = 1000;
+const MAX_RESULTS = 100000;
 const clampMax = (n) => {
   const v = parseInt(n, 10);
   return Number.isNaN(v) ? 100 : Math.min(MAX_RESULTS, Math.max(1, v));
@@ -165,7 +165,7 @@ async function start() {
   clearInterval(elapsedTimer);
   elapsedTimer = setInterval(tickElapsed, 100);
 
-  // Clamp to [1, 1000] and reflect the corrected value back into the field.
+  // Clamp to [1, 100000] and reflect the corrected value back into the field.
   const maxResults = clampMax($("maxResults").value);
   $("maxResults").value = maxResults;
 

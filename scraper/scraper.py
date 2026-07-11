@@ -25,7 +25,7 @@ from mapping import dedupe_key, map_record
 from sources import apify
 
 # Upper bound on requested results — Apify plans bill per usage, so cap it.
-MAX_RESULTS = 1000
+MAX_RESULTS = 100000
 
 # Set when SIGTERM/SIGINT arrives so the scrape loop can stop and flush cleanly.
 _STOP = {"flag": False}
@@ -186,7 +186,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Google Maps lead scraper")
     parser.add_argument("--location", required=True, help="Area to search, e.g. 'Punjab, India'")
     parser.add_argument("--category", default="", help="Optional category, e.g. 'clothing'. Empty = all brands.")
-    parser.add_argument("--max-results", type=int, default=100, help="Max leads (default 100, matches n8n; capped at 1000)")
+    parser.add_argument("--max-results", type=int, default=100, help="Max leads (default 100, matches n8n; capped at 100000)")
     parser.add_argument("--source", choices=["auto", "apify", "browser"], default="auto",
                         help="Where to scrape from: auto (Apify then browser fallback), apify only, or browser only")
     parser.add_argument("--only-no-website", action="store_true",
@@ -197,7 +197,7 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true", help="Emit NDJSON events on stdout (for the Electron app)")
     args = parser.parse_args(argv)
 
-    # Hard cap: Apify plans bill per usage, so bound requested results to 1000.
+    # Hard cap: Apify plans bill per usage, so bound requested results to 100000.
     args.max_results = max(1, min(args.max_results, MAX_RESULTS))
 
     signal.signal(signal.SIGTERM, _handle_stop)
