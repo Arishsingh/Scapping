@@ -1,0 +1,14 @@
+{
+  "name": "google-maps-lead-scraper-desktop",
+  "version": "1.0.0",
+  "description": "Electron viewer for the Google Maps lead scraper — runs the Python scraper and shows progress live.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^30.0.0"
+  }
+}

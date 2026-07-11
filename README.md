@@ -1,4 +1,126 @@
-# Google Maps Lead Generator (n8n + Apify)
+# Google Maps Lead Generator
+
+Turn a **location** (and optional category) into a clean, de-duplicated list of
+business leads scraped from Google Maps.
+
+There are **two ways to run it**:
+
+1. **Desktop app (Python + Electron)** — recommended. A standalone scraper with a
+   desktop UI to pick a data source (Apify or live browser), watch progress in a
+   live log, filter for "businesses with no website," inspect a brand's contact
+   details, and export CSV. **No n8n required.**
+2. **n8n workflow** — the original `google-maps-lead-gen.n8n.json`, documented
+   further down.
+
+Both use the same Apify actor (`compass/crawler-google-places`) and produce the
+**same 15-column CSV** schema.
+
+---
+
+## Desktop app (Python scraper + Electron viewer)
+
+```
+scraper/   Python scraper — Apify primary + Playwright browser scraper
+desktop/   Electron app — runs the scraper and shows progress live
+output/    generated timestamped CSVs (gitignored)
+config.json  local, gitignored — { apifyToken, pythonPath }
+```
+
+**How they connect:** the Electron app spawns `scraper/scraper.py` as a child
+process and reads newline-delimited JSON (NDJSON) events from its stdout — no
+server, no ports. The scraper is also fully usable on its own from the CLI.
+
+### Setup
+
+```bash
+# 1. Python scraper deps (a venv at the repo root is auto-detected by the app)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r scraper/requirements.txt
+playwright install chromium          # required for the Browser source
+
+# 2. Electron app deps
+cd desktop
+npm install
+```
+
+The app auto-detects a virtualenv at `venv/`, `.venv/`, or `scraper/.venv/` and
+runs its Python (where Playwright lives), so you don't have to activate the venv
+before launching. Set an explicit interpreter in **Settings** only if you want to
+override that.
+
+### Run
+
+```bash
+cd desktop
+npm start
+```
+
+### Using the app
+
+- **Location** (required). **Category** is optional — leave it blank to list
+  **all brands** in the area (`businesses in {location}`).
+- **Max results** — 1–1000 (hard-capped). Note the browser source opens one page
+  per place (~2s each), so large numbers take minutes.
+- **Source**:
+  - **Auto** — try Apify first (if a token is set), fall back to the browser.
+  - **Apify only** — first-party actor data; fast and rich, but tends to return
+    established/branded stores (which usually *have* websites). Never falls back.
+  - **Browser only** — scrapes live Google Maps, reaching smaller local shops.
+    **Best for finding businesses with no website.** No Apify token/credits needed.
+- **Start / Stop** — leads stream into the table live. Stop cancels within ~1
+  scroll cycle; the partial CSV is still saved.
+- **Filters** — "No website only" / "Has email only" toggles plus a text search
+  (name / category / city / address). They filter the table live **and**, when set
+  **before you press Start**, pre-filter the scrape itself so the saved run CSV
+  contains only matching businesses. "Has email only" works best with Apify; the
+  browser source rarely finds emails.
+- **Click a row** → detail panel with the brand's full contact info + Maps link.
+- **Export current view → CSV** — writes just the currently filtered rows.
+- **Live logs** — a timestamped, color-coded stream of everything the scraper
+  does (source, fallback, each lead, a summary like *"examined 29 places → kept 17
+  (12 filtered out)"*, errors). Collapsible, with auto-scroll and clear.
+- **Past runs** — every run is saved to its own timestamped file
+  (`leads_YYYY-MM-DD_HH-MM-SS_{category}-{location}.csv`), so re-running the same
+  search never overwrites a previous result. Open a file or the output folder.
+- **Settings ⚙** — paste your Apify token (stored in gitignored `config.json`),
+  or set an explicit Python interpreter (blank = auto-detect).
+
+### Run the scraper without the app (CLI)
+
+```bash
+# from the repo root, with the venv active
+python scraper/scraper.py --location "Punjab, India" --category clothing --max-results 50
+python scraper/scraper.py --location "Ahmedabad" --source browser --only-no-website
+python scraper/scraper.py --location "Punjab, India" --json     # NDJSON (what Electron reads)
+```
+
+Flags: `--location` (required), `--category`, `--max-results` (default 100, cap
+1000), `--source auto|apify|browser`, `--only-no-website`, `--only-with-email`,
+`--output-dir`, `--json`.
+
+### Apify token
+
+Set it either way:
+- `export APIFY_TOKEN=...` in your shell, **or**
+- via the app's **Settings** (writes `config.json` at the repo root).
+
+In **Auto** mode, if no token is found — or Apify errors / returns nothing — the
+scraper falls back to the Playwright browser scraper.
+
+### Notes & limitations
+
+- **Browser runtime:** it opens one page per place, so a large `max-results` run
+  takes minutes. Watch the live logs; Stop anytime.
+- **Google's ceiling:** the Maps results feed caps around ~120 results per search
+  regardless of `max-results`. For deeper coverage of a big city, search by
+  neighborhood (e.g. `clothing in Satellite, Ahmedabad`) and merge.
+- **Emails:** only Apify (`scrapeContacts`) reliably returns emails; the browser
+  source usually leaves the email column blank.
+
+---
+
+## n8n workflow (original)
 
 An n8n workflow that turns a category + location into a clean list of business
 leads scraped from Google Maps, de-duplicates them, writes them to a Google
@@ -119,4 +241,3 @@ first-party Google data instead of a third-party scraper.
    `displayName.text`, `formattedAddress`, `location.latitude/longitude`,
    `googleMapsUri`, `rating`, `userRatingCount`, `regularOpeningHours`, etc.
 4. Rewire it into the same **Map Fields → Remove Duplicates → output** chain.
-# Scapping

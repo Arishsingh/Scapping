@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google Maps Lead Scraper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">▚ Google Maps Lead Scraper</div>
+    <button id="settingsBtn" class="ghost">⚙ Settings</button>
+  </header>
+
+  <!-- Search form -->
+  <section class="panel form">
+    <div class="field grow">
+      <label for="location">Location <span class="req">*</span></label>
+      <input id="location" type="text" placeholder="e.g. Punjab, India" />
+    </div>
+    <div class="field grow">
+      <label for="category">Category <span class="opt">(optional — blank = all brands)</span></label>
+      <input id="category" type="text" placeholder="e.g. clothing" />
+    </div>
+    <div class="field small">
+      <label for="maxResults">Max results</label>
+      <input id="maxResults" type="number" value="100" min="1" max="1000" title="Between 1 and 1000" />
+    </div>
+    <div class="field source">
+      <label for="source">Source</label>
+      <select id="source">
+        <option value="auto">Auto (Apify → Browser)</option>
+        <option value="apify">Apify only</option>
+        <option value="browser">Browser only</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button id="startBtn" class="primary">▶ Start</button>
+      <button id="stopBtn" class="danger" disabled>■ Stop</button>
+    </div>
+  </section>
+
+  <!-- Status bar -->
+  <section class="statusbar">
+    <span class="chip" id="sourceChip">source: —</span>
+    <span class="chip" id="stateChip">idle</span>
+    <span class="chip" id="foundChip">found: 0</span>
+    <span class="chip" id="elapsedChip">0.0s</span>
+    <span class="statusmsg" id="statusMsg"></span>
+  </section>
+
+  <!-- Filter bar -->
+  <section class="filterbar">
+    <span class="filterlabel" title="These toggles filter the table, and also pre-filter the scrape + saved CSV when you press Start.">Filters <span class="opt">(also applied on Start)</span>:</span>
+    <label class="toggle"><input type="checkbox" id="noWebsite" /> No website only</label>
+    <label class="toggle"><input type="checkbox" id="hasEmail" /> Has email only</label>
+    <input id="search" type="text" class="search" placeholder="Filter by name / category / city / address…" />
+    <span class="showing" id="showing">0 shown</span>
+    <button id="exportBtn" class="ghost">⭳ Export current view → CSV</button>
+  </section>
+
+  <!-- Main: results table + detail panel -->
+  <section class="main">
+    <div class="tablewrap">
+      <table id="leads">
+        <thead>
+          <tr>
+            <th>Name</th><th>Category</th><th>City</th><th>Phone</th>
+            <th>Website</th><th>Email</th><th>Rating</th>
+          </tr>
+        </thead>
+        <tbody id="leadsBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty">No leads yet. Enter a location and press Start.</div>
+    </div>
+
+    <aside id="detail" class="detail hidden">
+      <div class="detailhead">
+        <h2 id="detailName">Details</h2>
+        <button id="detailClose" class="ghost">✕</button>
+      </div>
+      <dl id="detailBody"></dl>
+    </aside>
+  </section>
+
+  <!-- Live logs -->
+  <section class="panel logs">
+    <div class="logshead">
+      <strong>Live logs</strong>
+      <span class="logcount" id="logCount"></span>
+      <span class="spacer"></span>
+      <label class="toggle"><input type="checkbox" id="autoscroll" checked /> Auto-scroll</label>
+      <button id="clearLogs" class="ghost">Clear</button>
+      <button id="toggleLogs" class="ghost">Hide</button>
+    </div>
+    <div id="logBody" class="logbody"></div>
+  </section>
+
+  <!-- Past runs -->
+  <section class="panel runs">
+    <div class="runshead">
+      <strong>Past runs</strong>
+      <span class="spacer"></span>
+      <button id="refreshRuns" class="ghost">↻ Refresh</button>
+      <button id="revealOutput" class="ghost">📂 Open output folder</button>
+    </div>
+    <ul id="runsList" class="runslist"></ul>
+  </section>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modalcard">
+      <h2>Settings</h2>
+      <p class="hint">The Apify token is stored locally in <code>config.json</code> (gitignored) and used as the primary scraping source. Without it, the scraper falls back to the browser.</p>
+      <label for="apifyToken">Apify API token</label>
+      <input id="apifyToken" type="password" placeholder="paste token to set / update" />
+      <p class="tokenstate" id="tokenState"></p>
+      <label for="pythonPath">Python executable <span class="opt">(leave blank to auto-detect)</span></label>
+      <input id="pythonPath" type="text" placeholder="auto" />
+      <p class="tokenstate" id="pythonState"></p>
+      <div class="modalactions">
+        <button id="settingsCancel" class="ghost">Cancel</button>
+        <button id="settingsSave" class="primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
